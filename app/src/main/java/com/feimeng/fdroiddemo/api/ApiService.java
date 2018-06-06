@@ -3,10 +3,10 @@ package com.feimeng.fdroiddemo.api;
 
 import com.feimeng.fdroid.mvp.model.api.bean.Response;
 
+import io.reactivex.Observable;
 import okhttp3.RequestBody;
 import retrofit2.http.Body;
 import retrofit2.http.POST;
-import rx.Observable;
 
 /**
  * API接口

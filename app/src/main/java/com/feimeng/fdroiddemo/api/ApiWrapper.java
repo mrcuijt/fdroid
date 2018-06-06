@@ -2,7 +2,7 @@ package com.feimeng.fdroiddemo.api;
 
 import com.feimeng.fdroid.mvp.model.api.FDApi;
 
-import rx.Observable;
+import io.reactivex.Observable;
 
 /**
  * Api类的包装

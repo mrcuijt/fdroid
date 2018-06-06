@@ -5,7 +5,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.TextView;
 
-import com.feimeng.fdroid.mvp.model.api.bean.ApiError;
 import com.feimeng.fdroid.mvp.model.api.bean.ApiFinish2;
 import com.feimeng.fdroid.utils.L;
 import com.feimeng.fdroid.utils.T;

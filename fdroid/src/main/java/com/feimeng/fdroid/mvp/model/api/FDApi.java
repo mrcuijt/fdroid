@@ -1,7 +1,6 @@
 package com.feimeng.fdroid.mvp.model.api;
 
 import android.support.annotation.NonNull;
-import android.text.TextUtils;
 
 import com.feimeng.fdroid.config.FDConfig;
 import com.feimeng.fdroid.mvp.model.api.bean.FDApiFinish;
@@ -23,23 +22,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import io.reactivex.Observable;
+import io.reactivex.ObservableEmitter;
+import io.reactivex.ObservableOnSubscribe;
+import io.reactivex.ObservableSource;
+import io.reactivex.ObservableTransformer;
+import io.reactivex.Observer;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Function;
+import io.reactivex.schedulers.Schedulers;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
 import okhttp3.logging.HttpLoggingInterceptor;
+import retrofit2.CallAdapter;
+import retrofit2.Converter;
+import retrofit2.HttpException;
 import retrofit2.Retrofit;
-import retrofit2.adapter.rxjava.HttpException;
-import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;
+import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import retrofit2.converter.gson.GsonConverterFactory;
-import rx.Observable;
-import rx.Subscriber;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
 
-import static com.feimeng.fdroid.config.FDConfig.INFO_MALFORMED_JSON_EMPTY;
 import static com.feimeng.fdroid.config.FDConfig.SHOW_HTTP_LOG;
-import static com.feimeng.fdroid.mvp.model.api.FDApi.APIException.JSON_EMPTY;
 
 /**
  * API操作类
@@ -129,12 +133,12 @@ public class FDApi {
         return clientBuilder.build();
     }
 
-    protected GsonConverterFactory getGsonConverterFactory() {
+    protected Converter.Factory getGsonConverterFactory() {
         return GsonConverterFactory.create(new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create());
     }
 
-    protected RxJavaCallAdapterFactory getRxJavaCallAdapterFactory() {
-        return RxJavaCallAdapterFactory.create();
+    protected CallAdapter.Factory getRxJavaCallAdapterFactory() {
+        return RxJava2CallAdapterFactory.create();
     }
 
     /**
@@ -173,16 +177,16 @@ public class FDApi {
     }
 
     /**
-     * 响应码拦截器
+     * 响应结果拦截器，根据响应码拦截
      *
-     * @param code 响应码
-     * @return true 拦截 false 不拦截
+     * @param response 响应结果
+     * @return true 拦截 false 不拦截，执行往后流程
      */
-    private boolean responseCodeInterceptor(int code) {
+    private boolean responseCodeInterceptor(FDResponse response) {
         if (mResponseCodeInterceptorListener == null || mResponseCodes.length == 0) return false;
         for (int responseCode : mResponseCodes) {
-            if (responseCode == code) {
-                return mResponseCodeInterceptorListener.onResponse(code);
+            if (responseCode == response.getCode()) {
+                return mResponseCodeInterceptorListener.onResponse(response);
             }
         }
         return false;
@@ -196,24 +200,23 @@ public class FDApi {
      * @return Observable
      */
     private <T> Observable<T> flatResponse(final FDResponse<T> response) {
-        return Observable.create(new Observable.OnSubscribe<T>() {
+        return Observable.create(new ObservableOnSubscribe<T>() {
             @Override
-            public void call(Subscriber<? super T> subscriber) {
+            public void subscribe(ObservableEmitter<T> emitter) throws Exception {
+                if (emitter.isDisposed()) return;
                 if (SHOW_HTTP_LOG) L.s(response);
-                if (subscriber.isUnsubscribed()) return;
                 // 请求结果
                 if (response.isSuccess()) {
-                    subscriber.onNext(response.getData());
+                    emitter.onNext(response.getData());
                     // 请求完成
-                    subscriber.onCompleted();
+                    emitter.onComplete();
                 } else {
                     // 响应监听
-                    if (responseCodeInterceptor(response.getCode())) return;
-                    if (TextUtils.isEmpty(response.getInfo())) {
-                        subscriber.onError(new APIException(JSON_EMPTY, INFO_MALFORMED_JSON_EMPTY));
-                    } else {
-                        subscriber.onError(new APIException(response.getCode(), response.getInfo()));
+                    if (responseCodeInterceptor(response)) {
+                        emitter.onComplete();
+                        return;
                     }
+                    emitter.onError(new APIException(response.getCode(), response.getInfo()));
                 }
             }
         });
@@ -222,15 +225,15 @@ public class FDApi {
     /**
      * 在子线程中执行，主线程中回调
      */
-    protected <T> Observable.Transformer<FDResponse<T>, T> applySchedulers() {
-        return new Observable.Transformer<FDResponse<T>, T>() {
+    protected <T> ObservableTransformer<FDResponse<T>, T> applySchedulers() {
+        return new ObservableTransformer<FDResponse<T>, T>() {
             @Override
-            public Observable<T> call(Observable<FDResponse<T>> responseObservable) {
-                return responseObservable.subscribeOn(Schedulers.io())
+            public ObservableSource<T> apply(Observable<FDResponse<T>> upstream) {
+                return upstream.subscribeOn(Schedulers.io())
                         .observeOn(AndroidSchedulers.mainThread())
-                        .flatMap(new Func1<FDResponse<T>, Observable<T>>() {
+                        .flatMap(new Function<FDResponse<T>, ObservableSource<T>>() {
                             @Override
-                            public Observable<T> call(FDResponse<T> tResponse) {
+                            public ObservableSource<T> apply(FDResponse<T> tResponse) throws Exception {
                                 return flatResponse(tResponse);
                             }
                         });
@@ -241,14 +244,14 @@ public class FDApi {
     /**
      * 在子线程中执行并回调
      */
-    protected <T> Observable.Transformer<FDResponse<T>, T> applySchedulersNew() {
-        return new Observable.Transformer<FDResponse<T>, T>() {
+    protected <T> ObservableTransformer<FDResponse<T>, T> applySchedulersNew() {
+        return new ObservableTransformer<FDResponse<T>, T>() {
             @Override
-            public Observable<T> call(Observable<FDResponse<T>> responseObservable) {
-                return responseObservable.subscribeOn(Schedulers.io())
-                        .flatMap(new Func1<FDResponse<T>, Observable<T>>() {
+            public ObservableSource<T> apply(Observable<FDResponse<T>> upstream) {
+                return upstream.subscribeOn(Schedulers.io())
+                        .flatMap(new Function<FDResponse<T>, ObservableSource<T>>() {
                             @Override
-                            public Observable<T> call(FDResponse<T> tResponse) {
+                            public ObservableSource<T> apply(FDResponse<T> tResponse) throws Exception {
                                 return flatResponse(tResponse);
                             }
                         });
@@ -259,13 +262,13 @@ public class FDApi {
     /**
      * 在调用线程中执行并回调
      */
-    protected <T> Observable.Transformer<FDResponse<T>, T> applySchedulersFixed() {
-        return new Observable.Transformer<FDResponse<T>, T>() {
+    protected <T> ObservableTransformer<FDResponse<T>, T> applySchedulersFixed() {
+        return new ObservableTransformer<FDResponse<T>, T>() {
             @Override
-            public Observable<T> call(Observable<FDResponse<T>> responseObservable) {
-                return responseObservable.flatMap(new Func1<FDResponse<T>, Observable<T>>() {
+            public ObservableSource<T> apply(Observable<FDResponse<T>> upstream) {
+                return upstream.flatMap(new Function<FDResponse<T>, ObservableSource<T>>() {
                     @Override
-                    public Observable<T> call(FDResponse<T> tResponse) {
+                    public ObservableSource<T> apply(FDResponse<T> tResponse) throws Exception {
                         return flatResponse(tResponse);
                     }
                 });
@@ -273,10 +276,10 @@ public class FDApi {
         };
     }
 
-    public static <T> Subscriber<T> subscriber(final FDApiFinish<T> fdApiFinish) {
-        return new Subscriber<T>() {
+    public static <T> Observer<T> subscriber(final FDApiFinish<T> fdApiFinish) {
+        return new Observer<T>() {
             @Override
-            public void onStart() {
+            public void onSubscribe(Disposable d) {
                 if (SHOW_HTTP_LOG) L.d("请求开始 线程：" + Thread.currentThread().getName());
                 fdApiFinish.start();
             }
@@ -323,7 +326,7 @@ public class FDApi {
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 if (SHOW_HTTP_LOG) L.d("请求结束 线程：" + Thread.currentThread().getName());
                 fdApiFinish.stop();
             }
