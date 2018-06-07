@@ -7,11 +7,12 @@ import com.feimeng.fdroid.base.FDActivity;
 import com.feimeng.fdroid.base.FDFragment;
 import com.feimeng.fdroid.utils.L;
 import com.feimeng.fdroid.utils.NetworkUtil;
-import com.trello.rxlifecycle.android.ActivityEvent;
-import com.trello.rxlifecycle.android.FragmentEvent;
+import com.trello.rxlifecycle2.android.ActivityEvent;
+import com.trello.rxlifecycle2.android.FragmentEvent;
 
-import rx.Observable;
-import rx.Subscriber;
+import io.reactivex.Observable;
+import io.reactivex.ObservableEmitter;
+import io.reactivex.ObservableOnSubscribe;
 
 /**
  * 控制器基类
@@ -158,20 +159,20 @@ public abstract class FDPresenter<V extends FDView> {
     }
 
     public <T> Observable<T> withNet(Observable<T> task, final Object data) {
-        final Observable<T> checkNet = Observable.create(new Observable.OnSubscribe<T>() {
+        final Observable<T> checkNet = Observable.create(new ObservableOnSubscribe<T>() {
             @Override
-            public void call(Subscriber<? super T> subscriber) {
+            public void subscribe(ObservableEmitter<T> emitter) throws Exception {
                 if (!NetworkUtil.isConnectingToInternet(getContext())) {
                     if (isActive() && mView instanceof OnWithoutNetwork) {
                         ((OnWithoutNetwork) mView).withoutNetwork(data);
                     }
-                    subscriber.onError(null);
+                    emitter.onError(null);
                     return;
                 }
-                subscriber.onCompleted();
+                emitter.onComplete();
             }
         });
-        return Observable.concat(checkNet, task).first();
+        return Observable.concat(checkNet, task).firstElement().toObservable();
     }
 
     public <T> Observable<T> withNet(Observable<T> task, final OnWithoutNetwork network) {
@@ -179,17 +180,17 @@ public abstract class FDPresenter<V extends FDView> {
     }
 
     public <T> Observable<T> withNet(Observable<T> task, final OnWithoutNetwork network, final Object data) {
-        final Observable<T> checkNet = Observable.create(new Observable.OnSubscribe<T>() {
+        final Observable<T> checkNet = Observable.create(new ObservableOnSubscribe<T>() {
             @Override
-            public void call(Subscriber<? super T> subscriber) {
+            public void subscribe(ObservableEmitter<T> emitter) throws Exception {
                 if (!NetworkUtil.isConnectingToInternet(getContext())) {
                     if (network != null) network.withoutNetwork(data);
-                    subscriber.onError(null);
+                    emitter.onError(null);
                     return;
                 }
-                subscriber.onCompleted();
+                emitter.onComplete();
             }
         });
-        return Observable.concat(checkNet, task).first();
+        return Observable.concat(checkNet, task).firstElement().toObservable();
     }
 }

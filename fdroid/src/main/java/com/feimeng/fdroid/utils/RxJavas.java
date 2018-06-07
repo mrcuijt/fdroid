@@ -1,7 +1,8 @@
 package com.feimeng.fdroid.utils;
 
-import rx.Observable;
-import rx.Subscriber;
+import io.reactivex.Observable;
+import io.reactivex.ObservableEmitter;
+import io.reactivex.ObservableOnSubscribe;
 
 /**
  * RxJava辅助工具库
@@ -15,12 +16,15 @@ public class RxJavas {
      * @param observable 待执行的源事件
      */
     public static <T> Observable<T> choose(final boolean condition, Observable<T> observable) {
-        return Observable.concat(Observable.create(new Observable.OnSubscribe<T>() {
+        return Observable.concat(Observable.create(new ObservableOnSubscribe<T>() {
             @Override
-            public void call(Subscriber<? super T> subscriber) {
-                if (!condition) subscriber.onNext(null);
-                subscriber.onCompleted();
+            public void subscribe(ObservableEmitter<T> emitter) throws Exception {
+                if (!condition) emitter.onNext(null);
+                emitter.onComplete();
             }
-        }), observable).first();
+        }), observable).firstElement().toObservable();
+    }
+
+    public static class NULL {
     }
 }

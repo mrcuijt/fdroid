@@ -6,6 +6,7 @@ import com.feimeng.fdroid.config.FDConfig;
 import com.feimeng.fdroid.mvp.model.api.bean.FDApiFinish;
 import com.feimeng.fdroid.mvp.model.api.bean.FDResponse;
 import com.feimeng.fdroid.utils.L;
+import com.feimeng.fdroid.utils.RxJavas;
 import com.feimeng.fdroid.utils.interceptor.HeaderInterceptor;
 import com.feimeng.fdroid.utils.interceptor.MockInterceptor;
 import com.google.gson.Gson;
@@ -207,7 +208,15 @@ public class FDApi {
                 if (SHOW_HTTP_LOG) L.s(response);
                 // 请求结果
                 if (response.isSuccess()) {
-                    emitter.onNext(response.getData());
+                    if (response.getData() == null) {
+                        if (response.getData() instanceof RxJavas.NULL) {
+                            emitter.onNext((T) new RxJavas.NULL());
+                        } else {
+                            emitter.onError(new APIException(response.getCode(), "接口返回Null"));
+                        }
+                    } else {
+                        emitter.onNext(response.getData());
+                    }
                     // 请求完成
                     emitter.onComplete();
                 } else {

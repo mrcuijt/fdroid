@@ -1,17 +1,16 @@
 package com.feimeng.fdroiddemo.login;
 
-import rx.Observable;
-import rx.Subscriber;
+import com.feimeng.fdroid.utils.FastTask;
 
 public class LoginPresenter extends LoginContract.Presenter {
 
     @Override
     public void login() {
-        lifecycle(Observable.create(new Observable.OnSubscribe<String>() {
+        lifecycle(new FastTask<Void>() {
             @Override
-            public void call(Subscriber<? super String> subscriber) {
-
+            public Void task() {
+                return null;
             }
-        })).subscribe();
+        }.fast());
     }
 }

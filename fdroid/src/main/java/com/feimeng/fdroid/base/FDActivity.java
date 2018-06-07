@@ -7,17 +7,17 @@ import android.support.annotation.Nullable;
 import android.view.LayoutInflater;
 import android.view.View;
 
-import com.feimeng.fdroid.base.support.RxActivity;
 import com.feimeng.fdroid.mvp.base.FDPresenter;
 import com.feimeng.fdroid.mvp.base.FDView;
 import com.feimeng.fdroid.utils.ActivityPageManager;
 import com.feimeng.fdroid.widget.FDialog;
+import com.trello.rxlifecycle2.components.support.RxAppCompatActivity;
 
 /**
  * Activity基类
  * Created by feimeng on 2017/1/20.
  */
-public abstract class FDActivity<V extends FDView, P extends FDPresenter<V>> extends RxActivity {
+public abstract class FDActivity<V extends FDView, P extends FDPresenter<V>> extends RxAppCompatActivity {
     protected P mPresenter;
 
     /**

@@ -7,6 +7,7 @@ import android.widget.TextView;
 
 import com.feimeng.fdroid.mvp.model.api.bean.ApiFinish2;
 import com.feimeng.fdroid.utils.L;
+import com.feimeng.fdroid.utils.RxJavas;
 import com.feimeng.fdroid.utils.T;
 import com.feimeng.fdroiddemo.api.ApiWrapper;
 
@@ -19,6 +20,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
         findViewById(R.id.crash).setOnClickListener(this);
         findViewById(R.id.login).setOnClickListener(this);
+        findViewById(R.id.register).setOnClickListener(this);
     }
 
     TextView a;
@@ -31,6 +33,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.login:
                 login();
+                break;
+            case R.id.register:
+                register();
                 break;
         }
     }
@@ -47,6 +52,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     @Override
                     public void fail(Throwable error, String info) {
                         T.showS(getApplicationContext(), "登录出错");
+                        L.d(TAG, info);
+                    }
+                }));
+    }
+
+    private void register() {
+        ApiWrapper.getInstance().register("10086", "123456")
+                .subscribe(ApiWrapper.subscriber(new ApiFinish2<RxJavas.NULL>() {
+                    @Override
+                    public void success(RxJavas.NULL data) {
+                        T.showS(getApplicationContext(), "注册成功");
+                    }
+
+                    @Override
+                    public void fail(Throwable error, String info) {
+                        T.showS(getApplicationContext(), "注册出错");
                         L.d(TAG, info);
                     }
                 }));

@@ -3,6 +3,7 @@ package com.feimeng.fdroiddemo;
 import android.content.Context;
 
 import com.feimeng.fdroid.base.FDApp;
+import com.feimeng.fdroid.config.FDConfig;
 import com.feimeng.fdroid.utils.L;
 
 /**
@@ -31,5 +32,8 @@ public class BaseApp extends FDApp {
 
     @Override
     protected void config() {
+        FDConfig.SHOW_LOG = true;
+        FDConfig.SHOW_HTTP_LOG = true;
+        FDConfig.SHOW_HTTP_EXCEPTION_INFO = true;
     }
 }

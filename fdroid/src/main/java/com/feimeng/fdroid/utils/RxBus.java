@@ -1,47 +1,51 @@
 package com.feimeng.fdroid.utils;
 
-import rx.Observable;
-import rx.subjects.PublishSubject;
-import rx.subjects.SerializedSubject;
-import rx.subjects.Subject;
+import io.reactivex.Flowable;
+import io.reactivex.processors.FlowableProcessor;
+import io.reactivex.processors.PublishProcessor;
+import io.reactivex.subscribers.SerializedSubscriber;
 
 /**
  * 基于RxJava的事件总线
  * Created by feimeng on 2017/3/9.
  */
 public class RxBus {
-    private static volatile RxBus defaultInstance;
+    private final FlowableProcessor<Object> mBus; // 相当于RxJava1.x中的Subject
+    private static volatile RxBus sRxBus;
 
-    private final Subject<Object, Object> bus;
-
-    // PublishSubject只会把在订阅发生的时间点之后来自原始Observable的数据发射给观察者
-    public RxBus() {
-        bus = new SerializedSubject<>(PublishSubject.create());
+    private RxBus() {
+        mBus = PublishProcessor.create().toSerialized(); // 调用toSerialized()方法，保证线程安全
     }
 
-    // 单例RxBus
-    public static RxBus getDefault() {
-        if (defaultInstance == null) {
+    public static synchronized RxBus getDefault() {
+        if (sRxBus == null) {
             synchronized (RxBus.class) {
-                if (defaultInstance == null) {
-                    defaultInstance = new RxBus();
+                if (sRxBus == null) {
+                    sRxBus = new RxBus();
                 }
             }
         }
-        return defaultInstance;
+        return sRxBus;
     }
 
     /**
-     * 发送一个新的事件
+     * 发送消息 * @param o
      */
     public void post(Object o) {
-        bus.onNext(o);
+        new SerializedSubscriber<>(mBus).onNext(o);
     }
 
     /**
-     * 根据传递的 eventType 类型返回特定类型(eventType)的 被观察者
+     * 确定接收消息的类型
      */
-    public <T> Observable<T> get(Class<T> eventType) {
-        return bus.ofType(eventType);
+    public <R> Flowable<R> get(Class<R> aClass) {
+        return mBus.ofType(aClass);
+    }
+
+    /**
+     * 判断是否有订阅者
+     */
+    public boolean hasSubscribers() {
+        return mBus.hasSubscribers();
     }
 }

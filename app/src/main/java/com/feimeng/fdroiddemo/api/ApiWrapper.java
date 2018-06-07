@@ -1,6 +1,7 @@
 package com.feimeng.fdroiddemo.api;
 
 import com.feimeng.fdroid.mvp.model.api.FDApi;
+import com.feimeng.fdroid.utils.RxJavas;
 
 import io.reactivex.Observable;
 
@@ -13,6 +14,7 @@ public class ApiWrapper extends FDApi {
 
     private ApiWrapper() {
         addHttpMockData("user/login", "{\"code\":200,\"info\":\"成功\",\"data\":\"Hello Feimeng\"}");
+        addHttpMockData("user/register", "{\"code\":200,\"info\":\"成功\",\"data\":null}");
         api = getRetrofit("http://www.baidu.com/").create(ApiService.class);
     }
 
@@ -22,5 +24,9 @@ public class ApiWrapper extends FDApi {
 
     public Observable<String> login(String phone, String password) {
         return api.login(json("phone", phone, "password", password)).compose(this.<String>applySchedulers());
+    }
+
+    public Observable<RxJavas.NULL> register(String phone, String password) {
+        return api.register(json("phone", phone, "password", password)).compose(this.<RxJavas.NULL>applySchedulers());
     }
 }
