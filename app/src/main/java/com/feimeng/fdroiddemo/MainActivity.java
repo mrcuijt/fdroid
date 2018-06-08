@@ -7,7 +7,6 @@ import android.widget.TextView;
 
 import com.feimeng.fdroid.mvp.model.api.bean.ApiFinish2;
 import com.feimeng.fdroid.utils.L;
-import com.feimeng.fdroid.utils.RxJavas;
 import com.feimeng.fdroid.utils.T;
 import com.feimeng.fdroiddemo.api.ApiWrapper;
 
@@ -59,9 +58,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void register() {
         ApiWrapper.getInstance().register("10086", "123456")
-                .subscribe(ApiWrapper.subscriber(new ApiFinish2<RxJavas.NULL>() {
+                .subscribe(ApiWrapper.subscriber(new ApiFinish2<Object>() {
                     @Override
-                    public void success(RxJavas.NULL data) {
+                    public void success(Object ignore) {
                         T.showS(getApplicationContext(), "注册成功");
                     }
 

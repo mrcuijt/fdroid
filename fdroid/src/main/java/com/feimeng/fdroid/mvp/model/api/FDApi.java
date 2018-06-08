@@ -209,11 +209,7 @@ public class FDApi {
                 // 请求结果
                 if (response.isSuccess()) {
                     if (response.getData() == null) {
-                        if (response.getData() instanceof RxJavas.NULL) {
-                            emitter.onNext((T) new RxJavas.NULL());
-                        } else {
-                            emitter.onError(new APIException(response.getCode(), "接口返回Null"));
-                        }
+                        emitter.onNext((T) new RxJavas.NULL());
                     } else {
                         emitter.onNext(response.getData());
                     }

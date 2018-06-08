@@ -2,7 +2,6 @@ package com.feimeng.fdroiddemo.api;
 
 
 import com.feimeng.fdroid.mvp.model.api.bean.Response;
-import com.feimeng.fdroid.utils.RxJavas;
 
 import io.reactivex.Observable;
 import okhttp3.RequestBody;
@@ -18,5 +17,5 @@ public interface ApiService {
     Observable<Response<String>> login(@Body RequestBody requestBody);
 
     @POST("user/register")
-    Observable<Response<RxJavas.NULL>> register(@Body RequestBody requestBody);
+    Observable<Response<Object>> register(@Body RequestBody requestBody);
 }
