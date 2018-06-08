@@ -6,7 +6,6 @@ import com.feimeng.fdroid.config.FDConfig;
 import com.feimeng.fdroid.mvp.model.api.bean.FDApiFinish;
 import com.feimeng.fdroid.mvp.model.api.bean.FDResponse;
 import com.feimeng.fdroid.utils.L;
-import com.feimeng.fdroid.utils.RxJavas;
 import com.feimeng.fdroid.utils.interceptor.HeaderInterceptor;
 import com.feimeng.fdroid.utils.interceptor.MockInterceptor;
 import com.google.gson.Gson;
@@ -208,11 +207,7 @@ public class FDApi {
                 if (SHOW_HTTP_LOG) L.s(response);
                 // 请求结果
                 if (response.isSuccess()) {
-                    if (response.getData() == null) {
-                        emitter.onNext((T) new RxJavas.NULL());
-                    } else {
-                        emitter.onNext(response.getData());
-                    }
+                    emitter.onNext(response.getData());
                     // 请求完成
                     emitter.onComplete();
                 } else {
@@ -318,6 +313,9 @@ public class FDApi {
                         error = FDConfig.INFO_MALFORMED_JSON_EXCEPTION;
                     } else if (e instanceof EOFException) {
                         error = FDConfig.INFO_EOF_EXCEPTION;
+                    } else if (e instanceof NullPointerException) {
+                        fdApiFinish.success(null);
+                        return;
                     } else {
                         error = FDConfig.INFO_UNKNOWN_EXCEPTION;
                     }
